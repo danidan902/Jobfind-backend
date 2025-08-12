@@ -65,7 +65,7 @@ function CreateJob() {
       console.log("Full response:", res);
       
       if (res.status === 201) {
-        toast.success("🎉 Job posted successfully!");
+        toast.success("Job posted successfully!");
         navigate("/dashboard");
       } else {
         toast.error(`Unexpected status code: ${res.status}`);
