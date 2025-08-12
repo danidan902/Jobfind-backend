@@ -26,20 +26,34 @@ function CreateJob() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token) {
-      toast.error("You must be logged in to post a job.");
+    // Validate all required fields
+    const requiredFields = ['title', 'company', 'location', 'salary'];
+    const missingFields = requiredFields.filter(field => !form[field]);
+    
+    if (missingFields.length > 0) {
+      toast.error(`Missing required fields: ${missingFields.join(', ')}`);
       return;
     }
 
-    // Validate all required fields
-    if (!form.title || !form.company || !form.location || !form.salary) {
-      toast.error("Please fill in all required fields");
+    if (!token) {
+      toast.error("You must be logged in to post a job.");
+      navigate("/login");
       return;
     }
 
     setLoading(true);
 
+    // Debugging info
+    console.log("Submitting job with data:", JSON.stringify(form, null, 2));
+    console.log("Using token:", token ? "exists" : "missing");
+
     try {
+      // Test connection first
+      await axios.get("https://jobfinder-project-1.onrender.com/health-check", {
+        timeout: 5000
+      });
+
+      // If health check passes, submit the job
       const res = await axios.post(
         "https://jobfinder-project-1.onrender.com/api/jobs",
         form,
@@ -48,33 +62,48 @@ function CreateJob() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          timeout: 10000 // 10 second timeout
         }
       );
 
+      console.log("Full response:", res);
+      
       if (res.status === 201) {
         toast.success("🎉 Job posted successfully!");
         navigate("/dashboard");
+      } else {
+        toast.error(`Unexpected status code: ${res.status}`);
       }
     } catch (err) {
-      console.error("Error posting job:", err);
+      console.error("Full error details:", err);
       
-      let errorMessage = "Failed to post job. Please try again.";
-      
-      if (err.response) {
+      if (err.code === "ECONNABORTED") {
+        toast.error("Request timed out. Server might be down or slow to respond.");
+      } else if (err.response) {
         // Server responded with error status
         if (err.response.status === 401) {
-          errorMessage = "Session expired. Please login again.";
+          toast.error("Session expired. Please login again.");
           localStorage.removeItem("token");
           navigate("/login");
-        } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message;
+        } else if (err.response.status === 404) {
+          toast.error("Endpoint not found. Check the API URL.");
+        } else {
+          toast.error(`Server error: ${err.response.status} - ${err.response.data?.message || "No error message"}`);
         }
       } else if (err.request) {
-        // Request was made but no response received
-        errorMessage = "Network error. Please check your internet connection.";
+        // No response received
+        if (err.message.includes("Network Error")) {
+          toast.error("Cannot connect to server. Check:");
+          toast.error("1. Your internet connection");
+          toast.error("2. If the backend is running");
+          toast.error("3. CORS settings on the server");
+        } else {
+          toast.error("Network error: " + err.message);
+        }
+      } else {
+        // Request setup error
+        toast.error("Request error: " + err.message);
       }
-      
-      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -144,7 +173,7 @@ function CreateJob() {
           {/* Salary */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Salary *
+              Salary (USD) *
             </label>
             <input
               type="number"
@@ -152,6 +181,8 @@ function CreateJob() {
               value={form.salary}
               onChange={handleChange}
               required
+              min="0"
+              step="1000"
               placeholder="e.g. 80000"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
@@ -170,11 +201,13 @@ function CreateJob() {
             >
               <option value="Full-time">Full-time</option>
               <option value="Part-time">Part-time</option>
+              <option value="Contract">Contract</option>
+              <option value="Internship">Internship</option>
               <option value="Remote">Remote</option>
             </select>
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
