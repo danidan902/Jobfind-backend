@@ -36,7 +36,7 @@ export default function Register() {
     const registerUser = async () => {
       try {
         const res = await axios.post(
-          "http://localhost:5001/api/auth/register",
+          "https://jobfinder-project-1.onrender.com/api/auth/register",
           formData
         );
 
