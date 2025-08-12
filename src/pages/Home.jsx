@@ -13,35 +13,39 @@ function Home() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchJobsAndApplications = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
-        setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
-        
-        // Fetch user's applied jobs if logged in
+        // Fetch all jobs
+        const jobsRes = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
+        setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : jobsRes.data.jobs || []);
+
+        // Fetch user's applications if logged in
         if (token) {
-          const appliedRes = await axios.get(
-            "https://jobfinder-project-1.onrender.com/api/job/applied",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-          const appliedIds = appliedRes.data.map(job => job._id);
-          setAppliedJobs(new Set(appliedIds));
+          try {
+            const applicationsRes = await axios.get(
+              "https://jobfinder-project-1.onrender.com/api/job/applied",
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            );
+            const appliedIds = applicationsRes.data.map(app => app.job._id);
+            setAppliedJobs(new Set(appliedIds));
+          } catch (appError) {
+            console.log("Could not fetch applications", appError);
+          }
         }
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
-                           err.message || 
-                           "Error fetching jobs";
+                         err.message || 
+                         "Error fetching jobs";
         toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
     };
-    fetchJobs();
+
+    fetchJobsAndApplications();
   }, [token]);
 
   const filteredJobs = jobs.filter((job) =>
@@ -56,28 +60,32 @@ function Home() {
 
     try {
       const res = await axios.post(
-        `https://jobfinder-project-1.onrender.com/api/job/${jobId}/apply`,
+        `https://jobfinder-project-1.onrender.com/api/job/apply/${jobId}`,
         {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
-          },
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      // Update the applied jobs set
-      setAppliedJobs(prev => new Set(prev).add(jobId));
-      toast.success("Applied successfully!");
+      if (res.data.success) {
+        setAppliedJobs(prev => new Set(prev).add(jobId));
+        toast.success(res.data.message || "Applied successfully!");
+      } else {
+        toast.error(res.data.message || "Application failed");
+      }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 
-                         err.response?.data?.error ||
-                         "Error applying for job";
+                       err.response?.data?.error ||
+                       "Error applying for job";
+      
       toast.error(errorMessage);
       
-      // If unauthorized, clear token and reload
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 1500);
       }
     }
   };
