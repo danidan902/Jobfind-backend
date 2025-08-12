@@ -33,7 +33,7 @@ export default function Login() {
     const loginUser = async () => {
       try {
         const res = await axios.post(
-          "http://localhost:5001/api/auth/login", 
+          "https://jobfinder-project-1.onrender.com/api/auth/login", 
           formData,
           {
             headers: {
