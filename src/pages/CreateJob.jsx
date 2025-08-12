@@ -43,15 +43,12 @@ function CreateJob() {
 
     setLoading(true);
 
-    // Debugging info
-    console.log("Submitting job with data:", JSON.stringify(form, null, 2));
-    console.log("Using token:", token ? "exists" : "missing");
+    try {
+      console.log("Submitting job with data:", JSON.stringify(form, null, 2));
+      console.log("Using token:", token ? "exists" : "missing");
 
-    
-
-    
       const res = await axios.post(
-        "https://jobfinder-project-1.onrender.com/api/job",
+        `${process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com"}/api/job`,
         form,
         {
           headers: {
