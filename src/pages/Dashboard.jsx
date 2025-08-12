@@ -35,7 +35,7 @@ function Dashboard() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5001/api/job/${id}`);
+      await axios.delete(`https://jobfinder-project-1.onrender.com/api/job/${id}`);
       toast.success("Job deleted successfully");
       fetchMyJobs();
     } catch (err) {
