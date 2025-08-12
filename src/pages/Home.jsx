@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import JobCard from "../components/JobCard.jsx";
 import { toast } from "react-toastify";
-import { Loader2, Search, AlertTriangle } from "lucide-react";
+import { Loader2, Search, AlertTriangle, CheckCircle } from "lucide-react";
 import axios from 'axios';
 
 function Home() {
   const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [appliedJobs, setAppliedJobs] = useState(new Set());
 
   const token = localStorage.getItem("token");
 
@@ -17,6 +18,20 @@ function Home() {
       try {
         const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
         setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
+        
+        // Fetch user's applied jobs if logged in
+        if (token) {
+          const appliedRes = await axios.get(
+            "https://jobfinder-project-1.onrender.com/api/job/applied",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const appliedIds = appliedRes.data.map(job => job._id);
+          setAppliedJobs(new Set(appliedIds));
+        }
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
                            err.message || 
@@ -27,7 +42,7 @@ function Home() {
       }
     };
     fetchJobs();
-  }, []);
+  }, [token]);
 
   const filteredJobs = jobs.filter((job) =>
     job.title.toLowerCase().includes(search.toLowerCase())
@@ -50,11 +65,20 @@ function Home() {
         }
       );
 
+      // Update the applied jobs set
+      setAppliedJobs(prev => new Set(prev).add(jobId));
       toast.success("Applied successfully!");
     } catch (err) {
       const errorMessage = err.response?.data?.message || 
+                         err.response?.data?.error ||
                          "Error applying for job";
       toast.error(errorMessage);
+      
+      // If unauthorized, clear token and reload
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.location.reload();
+      }
     }
   };
 
@@ -98,7 +122,12 @@ function Home() {
 
       <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredJobs.map((job) => (
-          <JobCard key={job._id} job={job} onApply={handleApply} />
+          <JobCard 
+            key={job._id} 
+            job={job} 
+            onApply={handleApply}
+            isApplied={appliedJobs.has(job._id)}
+          />
         ))}
       </div>
     </div>
