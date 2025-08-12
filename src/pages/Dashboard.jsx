@@ -22,7 +22,7 @@ function Dashboard() {
 
   const fetchMyJobs = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/job/my/jobs");
+      const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job/my/jobs");
       if (Array.isArray(res.data.jobs)) {
         setMyJobs(res.data.jobs);
       } else {
