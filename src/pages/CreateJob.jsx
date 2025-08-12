@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -16,88 +17,45 @@ function CreateJob() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [shouldSubmit, setShouldSubmit] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-
-  // Configure axios instance
-  const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com",
-    timeout: 20000,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const submitJob = async () => {
-      if (!shouldSubmit) return;
-
-      // Validate all required fields
-      const requiredFields = ['title', 'company', 'location', 'salary'];
-      const missingFields = requiredFields.filter(field => !form[field]);
-      
-      if (missingFields.length > 0) {
-        toast.error(`Missing required fields: ${missingFields.join(', ')}`);
-        setShouldSubmit(false);
-        return;
-      }
-
-      if (!token) {
-        toast.error("You must be logged in to post a job.");
-        navigate("/login");
-        setShouldSubmit(false);
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        const res = await api.post("/api/jobs", form, {
-          signal: controller.signal
-        });
-
-        if (res.status === 201) {
-          toast.success("Job posted successfully!");
-          navigate("/dashboard");
-        }
-      } catch (err) {
-        if (axios.isCancel(err)) {
-          console.log("Request canceled:", err.message);
-        } else if (err.response) {
-          if (err.response.status === 401) {
-            toast.error("Session expired. Please login again.");
-            localStorage.removeItem("token");
-            navigate("/login");
-          } else {
-            toast.error(`Error: ${err.response.data?.message || "Unknown server error"}`);
-          }
-        } else if (err.request) {
-          toast.error("Network error. Please check your connection.");
-        } else {
-          toast.error("Error: " + err.message);
-        }
-      } finally {
-        setLoading(false);
-        setShouldSubmit(false);
-      }
-    };
-
-    submitJob();
-
-    return () => controller.abort();
-  }, [shouldSubmit, form, navigate, token]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setShouldSubmit(true);
+
+    if (!token) {
+      toast.error("You must be logged in to post a job.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com"}/api/job`,
+        form,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.success("🎉 Job posted successfully!");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error posting job:", err.response || err);
+      const message =
+        err.response?.data?.message || err.message || "Failed to post job.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -113,11 +71,10 @@ function CreateJob() {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Form fields remain exactly the same as your original */}
           {/* Job Title */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Job Title *
+              Job Title
             </label>
             <input
               type="text"
@@ -133,7 +90,7 @@ function CreateJob() {
           {/* Company */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Company Name *
+              Company Name
             </label>
             <input
               type="text"
@@ -149,7 +106,7 @@ function CreateJob() {
           {/* Location */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Location *
+              Location
             </label>
             <input
               type="text"
@@ -165,7 +122,7 @@ function CreateJob() {
           {/* Salary */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Salary (USD) *
+              Salary
             </label>
             <input
               type="number"
@@ -173,8 +130,6 @@ function CreateJob() {
               value={form.salary}
               onChange={handleChange}
               required
-              min="0"
-              step="1000"
               placeholder="e.g. 80000"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
@@ -193,13 +148,11 @@ function CreateJob() {
             >
               <option value="Full-time">Full-time</option>
               <option value="Part-time">Part-time</option>
-              <option value="Contract">Contract</option>
-              <option value="Internship">Internship</option>
               <option value="Remote">Remote</option>
             </select>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -217,20 +170,11 @@ function CreateJob() {
         </form>
       </motion.div>
 
-      <ToastContainer 
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
+      {/* Toast Notifications */}
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }
 
 export default CreateJob;
+
