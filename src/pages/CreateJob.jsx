@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -16,90 +16,88 @@ function CreateJob() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [shouldSubmit, setShouldSubmit] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
+  // Configure axios instance
+  const api = axios.create({
+    baseURL: process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com",
+    timeout: 20000,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const submitJob = async () => {
+      if (!shouldSubmit) return;
+
+      // Validate all required fields
+      const requiredFields = ['title', 'company', 'location', 'salary'];
+      const missingFields = requiredFields.filter(field => !form[field]);
+      
+      if (missingFields.length > 0) {
+        toast.error(`Missing required fields: ${missingFields.join(', ')}`);
+        setShouldSubmit(false);
+        return;
+      }
+
+      if (!token) {
+        toast.error("You must be logged in to post a job.");
+        navigate("/login");
+        setShouldSubmit(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const res = await api.post("/api/jobs", form, {
+          signal: controller.signal
+        });
+
+        if (res.status === 201) {
+          toast.success("Job posted successfully!");
+          navigate("/dashboard");
+        }
+      } catch (err) {
+        if (axios.isCancel(err)) {
+          console.log("Request canceled:", err.message);
+        } else if (err.response) {
+          if (err.response.status === 401) {
+            toast.error("Session expired. Please login again.");
+            localStorage.removeItem("token");
+            navigate("/login");
+          } else {
+            toast.error(`Error: ${err.response.data?.message || "Unknown server error"}`);
+          }
+        } else if (err.request) {
+          toast.error("Network error. Please check your connection.");
+        } else {
+          toast.error("Error: " + err.message);
+        }
+      } finally {
+        setLoading(false);
+        setShouldSubmit(false);
+      }
+    };
+
+    submitJob();
+
+    return () => controller.abort();
+  }, [shouldSubmit, form, navigate, token]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Validate all required fields
-    const requiredFields = ['title', 'company', 'location', 'salary'];
-    const missingFields = requiredFields.filter(field => !form[field]);
-    
-    if (missingFields.length > 0) {
-      toast.error(`Missing required fields: ${missingFields.join(', ')}`);
-      return;
-    }
-
-    if (!token) {
-      toast.error("You must be logged in to post a job.");
-      navigate("/login");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      console.log("Submitting job with data:", JSON.stringify(form, null, 2));
-      console.log("Using token:", token ? "exists" : "missing");
-
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com"}/api/job`,
-        form,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 20000
-        }
-      );
-
-      console.log("Full response:", res);
-      
-      if (res.status === 201) {
-        toast.success("Job posted successfully!");
-        navigate("/dashboard");
-      } else {
-        toast.error(`Unexpected status code: ${res.status}`);
-      }
-    } catch (err) {
-      console.error("Full error details:", err);
-      
-      if (err.code === "ECONNABORTED") {
-        toast.error("Request timed out. Server might be down or slow to respond.");
-      } else if (err.response) {
-        // Server responded with error status
-        if (err.response.status === 401) {
-          toast.error("Session expired. Please login again.");
-          localStorage.removeItem("token");
-          navigate("/login");
-        } else if (err.response.status === 404) {
-          toast.error("Endpoint not found. Check the API URL.");
-        } else {
-          toast.error(`Server error: ${err.response.status} - ${err.response.data?.message || "No error message"}`);
-        }
-      } else if (err.request) {
-        // No response received
-        if (err.message.includes("Network Error")) {
-          toast.error("Cannot connect to server. Check:");
-          toast.error("1. Your internet connection");
-          toast.error("2. If the backend is running");
-          toast.error("3. CORS settings on the server");
-        } else {
-          toast.error("Network error: " + err.message);
-        }
-      } else {
-        // Request setup error
-        toast.error("Request error: " + err.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+    setShouldSubmit(true);
   };
 
   return (
@@ -115,6 +113,7 @@ function CreateJob() {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form fields remain exactly the same as your original */}
           {/* Job Title */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
