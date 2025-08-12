@@ -1,52 +1,33 @@
 import React, { useEffect, useState } from "react";
 import JobCard from "../components/JobCard.jsx";
 import { toast } from "react-toastify";
-import { Loader2, Search, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, Search, AlertTriangle } from "lucide-react";
 import axios from 'axios';
 
 function Home() {
   const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [appliedJobs, setAppliedJobs] = useState(new Set());
 
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchJobsAndApplications = async () => {
+    const fetchJobs = async () => {
       setLoading(true);
       try {
-        // Fetch all jobs
-        const jobsRes = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
-        setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : jobsRes.data.jobs || []);
-
-        // Fetch user's applications if logged in
-        if (token) {
-          try {
-            const applicationsRes = await axios.get(
-              "https://jobfinder-project-1.onrender.com/api/job/applied",
-              {
-                headers: { Authorization: `Bearer ${token}` }
-              }
-            );
-            const appliedIds = applicationsRes.data.map(app => app.job._id);
-            setAppliedJobs(new Set(appliedIds));
-          } catch (appError) {
-            console.log("Could not fetch applications", appError);
-          }
-        }
+        const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
+        setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
-                         err.message || 
-                         "Error fetching jobs";
+                           err.message || 
+                           "Error fetching jobs";
         toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchJobsAndApplications();
-  }, [token]);
+    fetchJobs();
+  }, []);
 
   const filteredJobs = jobs.filter((job) =>
     job.title.toLowerCase().includes(search.toLowerCase())
@@ -60,33 +41,20 @@ function Home() {
 
     try {
       const res = await axios.post(
-        `https://jobfinder-project-1.onrender.com/api/job/apply/${jobId}`,
+        `https://jobfinder-project-1.onrender.com/api/job/${jobId}/apply`,
         {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          },
         }
       );
 
-      if (res.data.success) {
-        setAppliedJobs(prev => new Set(prev).add(jobId));
-        toast.success(res.data.message || "Applied successfully!");
-      } else {
-        toast.error(res.data.message || "Application failed");
-      }
+      toast.success("Applied successfully!");
     } catch (err) {
       const errorMessage = err.response?.data?.message || 
-                       err.response?.data?.error ||
-                       "Error applying for job";
-      
+                         "Error applying for job";
       toast.error(errorMessage);
-      
-      if (err.response?.status === 401) {
-        localStorage.removeItem("token");
-        setTimeout(() => window.location.reload(), 1500);
-      }
     }
   };
 
@@ -130,12 +98,7 @@ function Home() {
 
       <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredJobs.map((job) => (
-          <JobCard 
-            key={job._id} 
-            job={job} 
-            onApply={handleApply}
-            isApplied={appliedJobs.has(job._id)}
-          />
+          <JobCard key={job._id} job={job} onApply={handleApply} />
         ))}
       </div>
     </div>
