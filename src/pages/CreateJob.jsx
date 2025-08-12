@@ -47,15 +47,11 @@ function CreateJob() {
     console.log("Submitting job with data:", JSON.stringify(form, null, 2));
     console.log("Using token:", token ? "exists" : "missing");
 
-    try {
-      // Test connection first
-      await axios.get("https://jobfinder-project-1.onrender.com/health-check", {
-        timeout: 5000
-      });
+    
 
       // If health check passes, submit the job
       const res = await axios.post(
-        "https://jobfinder-project-1.onrender.com/api/jobs",
+        "https://jobfinder-project-1.onrender.com/api/job",
         form,
         {
           headers: {
