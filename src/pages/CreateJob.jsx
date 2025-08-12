@@ -49,7 +49,7 @@ function CreateJob() {
 
     
 
-      // If health check passes, submit the job
+    
       const res = await axios.post(
         "https://jobfinder-project-1.onrender.com/api/job",
         form,
@@ -58,7 +58,7 @@ function CreateJob() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          timeout: 10000 // 10 second timeout
+          timeout: 20000
         }
       );
 
