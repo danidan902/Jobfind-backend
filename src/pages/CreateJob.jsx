@@ -1,4 +1,3 @@
- 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -32,11 +31,17 @@ function CreateJob() {
       return;
     }
 
+    // Validate all required fields
+    if (!form.title || !form.company || !form.location || !form.salary) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await axios.post(
-         "https://jobfinder-project-1.onrender.com/api/job",
+        "https://jobfinder-project-1.onrender.com/api/jobs",
         form,
         {
           headers: {
@@ -46,13 +51,30 @@ function CreateJob() {
         }
       );
 
-      toast.success("🎉 Job posted successfully!");
-      navigate("/dashboard");
+      if (res.status === 201) {
+        toast.success("🎉 Job posted successfully!");
+        navigate("/dashboard");
+      }
     } catch (err) {
-      console.error("Error posting job:", err.response || err);
-      const message =
-        err.response?.data?.message || err.message || "Failed to post job.";
-      toast.error(message);
+      console.error("Error posting job:", err);
+      
+      let errorMessage = "Failed to post job. Please try again.";
+      
+      if (err.response) {
+        // Server responded with error status
+        if (err.response.status === 401) {
+          errorMessage = "Session expired. Please login again.";
+          localStorage.removeItem("token");
+          navigate("/login");
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,7 +96,7 @@ function CreateJob() {
           {/* Job Title */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Job Title
+              Job Title *
             </label>
             <input
               type="text"
@@ -90,7 +112,7 @@ function CreateJob() {
           {/* Company */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Company Name
+              Company Name *
             </label>
             <input
               type="text"
@@ -106,7 +128,7 @@ function CreateJob() {
           {/* Location */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Location
+              Location *
             </label>
             <input
               type="text"
@@ -122,7 +144,7 @@ function CreateJob() {
           {/* Salary */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Salary
+              Salary *
             </label>
             <input
               type="number"
@@ -170,8 +192,18 @@ function CreateJob() {
         </form>
       </motion.div>
 
-      {/* Toast Notifications */}
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 }
