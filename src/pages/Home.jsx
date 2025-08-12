@@ -15,7 +15,7 @@ function Home() {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:5001/api/job");
+        const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
         setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
@@ -41,7 +41,7 @@ function Home() {
 
     try {
       const res = await axios.post(
-        `http://localhost:5001/api/job/${jobId}/apply`,
+        `https://jobfinder-project-1.onrender.com/api/job/${jobId}/apply`,
         {},
         {
           headers: {
