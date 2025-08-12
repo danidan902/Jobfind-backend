@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import JobCard from "../components/JobCard.jsx";
 import { toast } from "react-toastify";
 import { Loader2, Search, AlertTriangle } from "lucide-react";
-import axios from 'axios';
+import axios from "axios";
 
 function Home() {
   const [jobs, setJobs] = useState([]);
@@ -15,12 +15,16 @@ function Home() {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("https://jobfinder-project-1.onrender.com/api/job");
+        const res = await axios.get(
+          "https://jobfinder-project-1.onrender.com/api/job",
+          { withCredentials: true }
+        );
         setJobs(Array.isArray(res.data) ? res.data : res.data.jobs || []);
       } catch (err) {
-        const errorMessage = err.response?.data?.message || 
-                           err.message || 
-                           "Error fetching jobs";
+        const errorMessage =
+          err.response?.data?.message ||
+          err.message ||
+          "Error fetching jobs";
         toast.error(errorMessage);
       } finally {
         setLoading(false);
@@ -40,20 +44,21 @@ function Home() {
     }
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `https://jobfinder-project-1.onrender.com/api/job/${jobId}/apply`,
         {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          withCredentials: true,
         }
       );
 
       toast.success("Applied successfully!");
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 
-                         "Error applying for job";
+      const errorMessage =
+        err.response?.data?.message || "Error applying for job";
       toast.error(errorMessage);
     }
   };
