@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -7,18 +6,16 @@ import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 
-function CreateJob() {
+function Register() {
   const [form, setForm] = useState({
-    title: "",
-    company: "",
-    location: "",
-    salary: "",
-    jobType: "Full-time",
+    name: "",
+    email: "",
+    password: "",
+    role: "jobseeker",
   });
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -26,32 +23,24 @@ function CreateJob() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!token) {
-      toast.error("You must be logged in to post a job.");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL || "https://jobfinder-project-1.onrender.com"}/api/job`,
+      await axios.post(
+        `${
+          process.env.REACT_APP_API_URL ||
+          "https://jobfinder-project-1.onrender.com"
+        }/api/auth/register`,
         form,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      toast.success("🎉 Job posted successfully!");
-      navigate("/dashboard");
+      toast.success("🎉 Account created! Please login.");
+      navigate("/login");
     } catch (err) {
-      console.error("Error posting job:", err.response || err);
+      console.error("Registration error:", err.response || err);
       const message =
-        err.response?.data?.message || err.message || "Failed to post job.";
+        err.response?.data?.message || err.message || "Registration failed.";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -67,88 +56,72 @@ function CreateJob() {
         className="w-full max-w-xl bg-white dark:bg-[#111827] rounded-2xl shadow-2xl p-8 space-y-6 border border-blue-100 dark:border-gray-700"
       >
         <h2 className="text-3xl font-bold text-center text-blue-700 dark:text-white">
-          Post a Job
+          Create Account
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Job Title */}
+          {/* Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Job Title
+              Full Name
             </label>
             <input
               type="text"
-              name="title"
-              value={form.title}
+              name="name"
+              value={form.name}
               onChange={handleChange}
               required
-              placeholder="e.g. Frontend Developer"
+              placeholder="John Doe"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
           </div>
 
-          {/* Company */}
+          {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Company Name
+              Email Address
             </label>
             <input
-              type="text"
-              name="company"
-              value={form.company}
+              type="email"
+              name="email"
+              value={form.email}
               onChange={handleChange}
               required
-              placeholder="e.g. Google"
+              placeholder="you@example.com"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
           </div>
 
-          {/* Location */}
+          {/* Password */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Location
+              Password
             </label>
             <input
-              type="text"
-              name="location"
-              value={form.location}
+              type="password"
+              name="password"
+              value={form.password}
               onChange={handleChange}
               required
-              placeholder="e.g. Remote or Berlin"
+              minLength={6}
+              placeholder="••••••••"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
           </div>
 
-          {/* Salary */}
+          {/* Role */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Salary
-            </label>
-            <input
-              type="number"
-              name="salary"
-              value={form.salary}
-              onChange={handleChange}
-              required
-              placeholder="e.g. 80000"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
-          </div>
-
-          {/* Job Type */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Job Type
+              Role
             </label>
             <select
-              name="jobType"
-              value={form.jobType}
+              name="role"
+              value={form.role}
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             >
-              <option value="Full-time">Full-time</option>
-              <option value="Part-time">Part-time</option>
-              <option value="Remote">Remote</option>
+              <option value="jobseeker">Job Seeker</option>
+              <option value="employer">Employer</option>
             </select>
           </div>
 
@@ -161,10 +134,10 @@ function CreateJob() {
             {loading ? (
               <>
                 <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                Creating...
+                Registering...
               </>
             ) : (
-              "Create Job"
+              "Register"
             )}
           </button>
         </form>
@@ -176,5 +149,4 @@ function CreateJob() {
   );
 }
 
-export default CreateJob;
-
+export default Register;
