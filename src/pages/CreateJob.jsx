@@ -1,4 +1,4 @@
-you give me this code correct  code i dont want registration code please what the hell are you doing man this page please by this page 
+ 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
